@@ -69,9 +69,6 @@ function ShowMenu()
     let key  = nr2char(getchar())
     let done = HandleKeypress(key)
   endwhile
-
-  redraw!
-  echo "Selected tmux session: " . s:currentSession
 endfunction
 
 function HandleKeypress(key)
@@ -88,6 +85,8 @@ function HandleKeypress(key)
     return 0
   else
     let s:currentSession = value
+    redraw!
+    echo "Selected tmux session: " . s:currentSession
     return 1
   endif
 endfunction
