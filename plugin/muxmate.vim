@@ -7,73 +7,81 @@
 " ============================================================================
 
 let s:Version        = "0.0.1"
-let s:currentSession = ""
-let s:sessionList    = []
+let s:currentIdx = ""
+let s:paneList    = []
 let s:selection      = 0
 
 
 function ExecuteSpecLine()
   let cmd = system("which rspec") . " " . expand("%:p") . " --line_number " . line(".")
-  call SendKeys(shellescape(cmd))
+  call SendKeys(cmd)
 endfunction
 
 function ExecuteSpecFile()
   let cmd = system("which rspec") . " " . expand("%:p")
-  call SendKeys(shellescape(cmd))
+  call SendKeys(cmd)
 endfunction
 
 function ExecuteSpecs()
   let cmd = system("which rake") . " spec"
-  call SendKeys(shellescape(cmd))
-endfunction
-
-function ExecuteCommand()
-  let cmd = shellescape(input("Shell command: "))
   call SendKeys(cmd)
 endfunction
 
-function SendKeys(cmd)
-  if s:currentSession == ""
-    call ShowMenu()
-  endif
-
-  call system("tmux send-keys -t " . s:currentSession . " " . a:cmd . " Enter")
+function ExecuteCommand()
+  call SendKeys(input("Shell command: "))
 endfunction
 
-function SetSessionList()
-  let sessions      = system("tmux ls | awk '{print $1}'")
-  let s:sessionList = split(sessions, "\n") 
+function EscapeStr(str)
+    let res = substitute(a:str, ";$", "\\\\;", "")
+    return shellescape(res)
+endfunction
+
+function ExecuteLine()
+  call SendKeys(getline("."))
+endfunction
+
+function SendKeys(cmd)
+  if ("x" . s:currentIdx) == "x"
+    call ShowMenu()
+  endif
+  let escapedcmd = EscapeStr(a:cmd)
+  call system("tmux send-keys -t " . substitute(s:paneList[s:currentIdx], ': .*$', ' ', '') . "-l " . escapedcmd)
+  call system("tmux send-keys -t " . substitute(s:paneList[s:currentIdx], ': .*$', ' ', '') . "Enter")
+endfunction
+
+function GetPaneList()
+  let panes = system("tmux list-panes -a")
+  let s:paneList = split(panes, "\n")
   return 1
 endfunction
 
 function EchoPrompt()
-  echo "Select a tmux session"
+  echo "Select a tmux pane"
   echo "======================="
 
   let num = 0
-  for session in s:sessionList
-    let s:sessionList[num] = substitute(session, ":", "", "g")
-    echo "(" . num . ") " . s:sessionList[num]
+  for pane in s:paneList
+    echo "(" . num . ") " . s:paneList[num]
     let num = num + 1
   endfor
 endfunction
 
 " Stolen from NERDTree
 function ShowMenu()
-  call SetSessionList()
+  call GetPaneList()
 
   let done = 0
   while !done
     redraw!
     call EchoPrompt()
-    let key  = nr2char(getchar())
+    let key  = getchar()
     let done = HandleKeypress(key)
   endwhile
 endfunction
 
 function HandleKeypress(key)
-  let value = get(s:sessionList, a:key)
-  if a:key == nr2char(27) "escape
+  echo "HandleKeyPress(" . nr2char(a:key) . ") called"
+  if a:key == 27 "escape
     return 1
   endif
 
@@ -81,14 +89,10 @@ function HandleKeypress(key)
     return 1
   endif
 
-  if value == "0"
-    return 0
-  else
-    let s:currentSession = value
-    redraw!
-    echo "Selected tmux session: " . s:currentSession
-    return 1
-  endif
+  let s:currentIdx = (a:key - char2nr('0'))
+  redraw!
+  echo "Selected tmux pane: " . s:paneList[s:currentIdx]
+  return 1
 endfunction
 
 " Map for outside use
@@ -97,3 +101,5 @@ nmap <Leader>sx :call ExecuteCommand()<CR>
 nmap <Leader>sl :call ExecuteSpecLine()<CR>
 nmap <Leader>sf :call ExecuteSpecFile()<CR>
 nmap <Leader>sS :call ExecuteSpecs()<CR>
+nmap <F2> :call ExecuteLine()<CR>
+nmap <F3> :call ExecuteLine() <Enter><CR>
