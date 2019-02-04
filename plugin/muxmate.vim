@@ -36,6 +36,10 @@ function EscapeStr(str)
     return shellescape(res)
 endfunction
 
+function ExecuteLine()
+  call SendKeys(getline("."))
+endfunction
+
 function SendKeys(cmd)
   if ("x" . s:currentIdx) == "x"
     call ShowMenu()
@@ -97,3 +101,5 @@ nmap <Leader>sx :call ExecuteCommand()<CR>
 nmap <Leader>sl :call ExecuteSpecLine()<CR>
 nmap <Leader>sf :call ExecuteSpecFile()<CR>
 nmap <Leader>sS :call ExecuteSpecs()<CR>
+nmap <F2> :call ExecuteLine()<CR>
+nmap <F3> :call ExecuteLine() <Enter><CR>
