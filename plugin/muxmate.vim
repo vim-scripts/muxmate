@@ -14,30 +14,35 @@ let s:selection      = 0
 
 function ExecuteSpecLine()
   let cmd = system("which rspec") . " " . expand("%:p") . " --line_number " . line(".")
-  call SendKeys(shellescape(cmd))
+  call SendKeys(cmd)
 endfunction
 
 function ExecuteSpecFile()
   let cmd = system("which rspec") . " " . expand("%:p")
-  call SendKeys(shellescape(cmd))
+  call SendKeys(cmd)
 endfunction
 
 function ExecuteSpecs()
   let cmd = system("which rake") . " spec"
-  call SendKeys(shellescape(cmd))
+  call SendKeys(cmd)
 endfunction
 
 function ExecuteCommand()
-  let cmd = shellescape(input("Shell command: "))
-  call SendKeys(cmd)
+  call SendKeys(input("Shell command: "))
+endfunction
+
+function EscapeStr(str)
+    let res = substitute(a:str, ";$", "\\\\;", "")
+    return shellescape(res)
 endfunction
 
 function SendKeys(cmd)
   if ("x" . s:currentIdx) == "x"
     call ShowMenu()
   endif
-
-  call system("tmux send-keys -t " . s:currentSession . " " . a:cmd . " Enter")
+  let escapedcmd = EscapeStr(a:cmd)
+  call system("tmux send-keys -t " . substitute(s:paneList[s:currentIdx], ': .*$', ' ', '') . "-l " . escapedcmd)
+  call system("tmux send-keys -t " . substitute(s:paneList[s:currentIdx], ': .*$', ' ', '') . "Enter")
 endfunction
 
 function GetPaneList()
